@@ -5,6 +5,8 @@ CS 5306: Project 1
 
 import requests
 import json
+from datetime import datetime
+import bisect
 
  # TODO choose games to analyzie
    # - how many
@@ -18,18 +20,54 @@ GAME_IDS = {582160: "Assassin's Creed Origins", 107200: "Space Pirates and Zombi
 
 def get_all_apps():
 	"""
-		TODO: get all apps from steam,save to file
+		get all apps from steam,save to file
 	"""
-	pass
+	file = open("all_app_data.json", 'w')
+	url = "http://api.steampowered.com/ISteamApps/GetAppList/v0002/?key=" + STEAM_KEY + "&format=json"
+	data = requests.get(url)
+	assert data.status_code == 200, "APP RETRIEVAL FAILED"
+	resultJson = json.loads(data.content)
+	file.write(json.dumps(resultJson))
+	file.close()
+	return resultJson
 
 
 def filter_games_from_apps():
 	"""
 		TODO: using list of all apps; filter games and save IDs to file (maybe other relevant info...)
 	"""
-	# TODO get a steam key
-	url = "http://api.steampowered.com/ISteamApps/GetAppList/v0002/?key=" + STEAM_KEY + "&format=json"
-	pass
+	file = open("all_app_data.json")
+	allApps = json.loads(file.read())
+	file.close()
+	games = {}
+	dateList = []
+	idByRelease = []
+	for app in allApps['applist']['apps']:
+		# TODO check with API to see if app is game
+		appid = app['appid']
+		url =  http://store.steampowered.com/api/appdetails?appids= + str(appid)
+		data = requests.get(url)
+		assert data.status_code == 200, "GET failed on game " + app['name']
+		resultJson = json.loads(data.content)
+		apptype = resultJson['data']['type']
+		# check type is game
+		if apptype == "game":
+			releaseDate = resultJson['release_date']['date']
+			# TODO convert release date to a more useable form
+			# TODO maybe save a list of ids sorted by release date?
+			dateobj = datetime.strptime(releaseDate, '%b %d, %Y') # <- This won't matter in saved file, do later
+			index = bisect.bisect(dateList, dateobj)
+			idByRelease.insert(index, appid)
+			# save release date and name
+			games[appid] = {{"name": app['name']}, {"release": releaseDate}}
+	# TODO save all games
+	file = open("all_game_ids.json", 'w')
+	file.write(json.dumps(games))
+	file.close
+	file = open("all_game_ids_by_date", 'w')
+	file.write(json.dumps({"ids": idByRelease, "dates": dateList}))
+	file.close()
+	return games
 
 
 def get_selected_games_steam():
